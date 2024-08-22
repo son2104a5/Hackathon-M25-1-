@@ -1,113 +1,253 @@
-import Image from "next/image";
+"use client";
+import React, { useEffect, useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell
+} from "@/components/ui/table";
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import axios from 'axios';
 
-export default function Home() {
+interface Product {
+  id: number;
+  product_name: string;
+  image: string;
+  price: number;
+  quantity: number;
+}
+
+const VND = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+});
+
+export default function Page() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [inputValue, setInputValue] = useState({
+    product_name: '',
+    image: '',
+    price: 0,
+    quantity: 0,
+  });
+  const [errors, setErrors] = useState({
+    product_name: '',
+    image: '',
+    price: '',
+    quantity: '',
+  });
+
+  const fetchData = () => {
+    axios.get("http://localhost:3000/api/products")
+      .then(res => setProducts(res.data))
+      .catch(err => console.log(err));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue({ ...inputValue, [e.target.name]: e.target.value });
+  };
+
+  const validateInputs = () => {
+    const newErrors: any = {};
+    let isValid = true;
+
+    if (!inputValue.product_name.trim()) {
+      newErrors.product_name = 'Tên sản phẩm không được để trống';
+      isValid = false;
+    }
+    if (!inputValue.image.trim()) {
+      newErrors.image = 'Thiếu URL ảnh';
+      isValid = false;
+    }
+    if (!inputValue.price || isNaN(Number(inputValue.price))) {
+      newErrors.price = 'Giá sản phẩm không được để trống';
+      isValid = false;
+    }
+    if (!inputValue.quantity || isNaN(Number(inputValue.quantity))) {
+      newErrors.quantity = 'Số lượng sản phẩm phải lớn hơn 0';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleAddClick = () => {
+    if (!validateInputs()) return;
+
+    const maxId = products.length > 0 ? Math.max(...products.map(product => product.id)) : 0;
+
+    const newProduct = {
+      id: maxId + 1,
+      ...inputValue,
+    };
+
+    axios.post("http://localhost:3000/api/products", newProduct)
+      .then(res => {
+        setProducts(prevProducts => [...prevProducts, newProduct]);
+        resetForm();
+        alert('Thêm sản phẩm thành công!');
+      })
+      .catch(err => {
+        console.error("API Error:", err);
+        alert('Failed to add product');
+      });
+  };
+
+  const handleUpdateClick = () => {
+    if (!validateInputs()) return;
+
+    if (!editingProduct) return;
+
+    const updatedProduct = {
+      ...editingProduct,
+      ...inputValue,
+    };
+
+    axios.put(`http://localhost:3000/api/products/${editingProduct.id}`, updatedProduct)
+      .then(() => {
+        setProducts(prevProducts => prevProducts.map(product =>
+          product.id === editingProduct.id ? updatedProduct : product
+        ));
+        resetForm();
+        alert('Cập nhật sản phẩm thành công!');
+      })
+      .catch(err => {
+        console.error("API Error:", err);
+        alert('Failed to update product');
+      });
+  };
+
+  const handleEditClick = (product: Product) => {
+    setEditingProduct(product);
+    setInputValue({
+      product_name: product.product_name,
+      image: product.image,
+      price: product.price,
+      quantity: product.quantity,
+    });
+  };
+
+  const resetForm = () => {
+    setEditingProduct(null);
+    setInputValue({
+      product_name: '',
+      image: '',
+      price: 0,
+      quantity: 0,
+    });
+    setErrors({
+      product_name: '',
+      image: '',
+      price: '',
+      quantity: '',
+    });
+  };
+
+  const handleDeleteClick = (id: number) => {
+    const isConfirmed = window.confirm("Bạn muốn xóa sản phẩm này chứ?");
+    if (isConfirmed) {
+      axios.delete(`http://localhost:3000/api/products/${id}`)
+        .then(() => {
+          setProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+          alert('Xóa sản phẩm thành công!');
+        })
+        .catch(err => {
+          console.log(err);
+          alert('Failed to delete product');
+        });
+    } else {
+      alert('Xóa sản phẩm thất bại');
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className='flex gap-10 p-5'>
+      <div className='w-[60%]'>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className='font-bold text-center'>STT</TableHead>
+              <TableHead className='font-bold text-center'>Tên sản phẩm</TableHead>
+              <TableHead className='font-bold text-center'>Hình ảnh</TableHead>
+              <TableHead className='font-bold text-center'>Giá</TableHead>
+              <TableHead className='font-bold text-center'>Số lượng</TableHead>
+              <TableHead className='font-bold text-center'>Chức năng</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {products.map((product, index) => (
+              <TableRow key={product.id}>
+                <TableCell className='text-center'>{index + 1}</TableCell>
+                <TableCell className='text-center'>{product.product_name}</TableCell>
+                <TableCell><img src={product.image} width={100} className='rounded' /></TableCell>
+                <TableCell className='text-center'>{VND.format(product.price)}</TableCell>
+                <TableCell className='text-center'>{product.quantity}</TableCell>
+                <TableCell className='text-center'>
+                  <Button className='mr-3' variant={"secondary"} onClick={() => handleEditClick(product)}>Sửa</Button>
+                  <Button variant={"destructive"} onClick={() => handleDeleteClick(product.id)}>Xóa</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className='w-[30%] flex flex-col gap-5 p-6 border-[1px]'>
+        <strong className='text-center'>{editingProduct ? 'Sửa thông tin sản phẩm' : 'Thêm mới sản phẩm'}</strong>
+        <div className="grid w-full max-w-sm items-center gap-1.5">
+          <Label htmlFor="product_name">Tên</Label>
+          <Input
+            onChange={handleChange}
+            className='w-full'
+            type="text"
+            name="product_name"
+            value={inputValue.product_name}
+          />
+          {errors.product_name && <p className='text-red-500 text-sm'>{errors.product_name}</p>}
+          <Label htmlFor="image">Hình ảnh</Label>
+          <Input
+            onChange={handleChange}
+            className='w-full'
+            type="text"
+            name="image"
+            value={inputValue.image}
+          />
+          {errors.image && <p className='text-red-500 text-sm'>{errors.image}</p>}
+          <Label htmlFor="price">Giá</Label>
+          <Input
+            onChange={handleChange}
+            className='w-full'
+            type="text"
+            name="price"
+          />
+          {errors.price && <p className='text-red-500 text-sm'>{errors.price}</p>}
+          <Label htmlFor="quantity">Số lượng</Label>
+          <Input
+            onChange={handleChange}
+            className='w-full'
+            type="number"
+            name="quantity"
+            min={1}
+            defaultValue={1}
+          />
+          {errors.quantity && <p className='text-red-500 text-sm'>{errors.quantity}</p>}
+          <Button
+            variant={'primary'}
+            onClick={editingProduct ? handleUpdateClick : handleAddClick}
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            {editingProduct ? 'Cập nhật' : 'Thêm'}
+          </Button>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }

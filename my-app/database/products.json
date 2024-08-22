@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "product_name": "Cam",
+        "price": 12000,
+        "quantity": 12,
+        "image": "https://login.medlatec.vn//ImagePath/images/20221017/20221017_qua-cam-1.jpg"
+    },
+    {
+        "id": 2,
+        "product_name": "Táo",
+        "price": 15000,
+        "quantity": 20,
+        "image": "https://login.medlatec.vn//ImagePath/images/20221028/20221028_qua-tao-1.jpg"
+    },
+    {
+        "id": 3,
+        "product_name": "Bơ",
+        "price": 20000,
+        "quantity": 15,
+        "image": "https://images.baodantoc.vn/uploads/2023/Th%C3%A1ng%202/Ng%C3%A0y%208/Thanh/an-bo-da-tot-nhung-an-dung-thoi-diem-se-tot-hon-van-lan-202107131644096368.jpg"
+    },
+    {
+        "id": 4,
+        "product_name": "Chuối",
+        "price": 10000,
+        "quantity": 30,
+        "image": "https://data-service.pharmacity.io/pmc-upload-media/production/pmc-ecm-asm/posts/an-chuoi-4.webp"
+    },
+    {
+        "id": 5,
+        "product_name": "Dâu tây",
+        "price": 22000,
+        "quantity": 40,
+        "image": "https://imgamp.phunutoday.vn/files/news/2023/03/15/3-nguoi-tuyet-doi-khong-duoc-an-dau-tay-142927.jpg"
+    }
+]
